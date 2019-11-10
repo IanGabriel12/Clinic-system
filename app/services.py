@@ -17,7 +17,7 @@ NUMERO = 4
 con = mysql.connect('localhost', 'root', 'root', 'clinic')
 cursor = con.cursor()
 
-def cadastrarPessoa(paciente):
+def cadastrarPaciente(paciente):
     """recebe um objeto do tipo pessoa e cadastra no banco de dados"""
     cadastrarEndereco(paciente.endereco)
     cursor.execute(
@@ -25,12 +25,12 @@ def cadastrarPessoa(paciente):
         ("{paciente.nome.title()}", "{paciente.rg}", "{paciente.telefone}", LAST_INSERT_ID())'''
     )
     con.commit()
-    
-def cadastrarEndereco(endereco):
-    """recebe um objeto do tipo endereco e cadastra no banco de dados"""
+
+def editarPaciente(paciente):
+    editarEndereco(paciente.endereco)
     cursor.execute(
-        f'''INSERT INTO enderecos (rua, cidade, estado, numero) VALUES 
-        ("{'R.'+endereco.rua.title()}", "{endereco.cidade.title()}", "{endereco.estado.upper()}", "{endereco.numero}")'''
+        f'''UPDATE pacientes SET nome="{paciente.nome.title()}", rg="{paciente.rg}", telefone="{paciente.telefone}"
+        WHERE id={paciente.id}'''
     )
     con.commit()
 
@@ -47,6 +47,23 @@ def getPacientes():
     
     return pacientes
     
+    
+def cadastrarEndereco(endereco):
+    """recebe um objeto do tipo endereco e cadastra no banco de dados"""
+    cursor.execute(
+        f'''INSERT INTO enderecos (rua, cidade, estado, numero) VALUES 
+        ("{endereco.rua.title()}", "{endereco.cidade.title()}", "{endereco.estado.upper()}", "{endereco.numero}")'''
+    )
+    con.commit()
+
+def editarEndereco(endereco):
+    cursor.execute(
+        f'''UPDATE enderecos SET rua="{endereco.rua.title()}", cidade="{endereco.cidade.title()}", estado="{endereco.estado.upper()}",
+        numero="{endereco.numero}" WHERE id={endereco.id};'''
+        )
+
+    con.commit()
+
 def getEnderecoById(id):
     cursor.execute(f'''SELECT * FROM enderecos WHERE id = {id}''')
     endereco_bd = cursor.fetchone()
@@ -76,5 +93,3 @@ def excluir(objeto):
     )
 
     con.commit()
-
-
