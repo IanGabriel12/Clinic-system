@@ -1,3 +1,4 @@
+import time
 class ClinicError(Exception):
     pass
 
@@ -8,6 +9,8 @@ class Validacao:
             raise ClinicError('O campo "rg" é obrigatório')
         if not rg.isdigit():
             raise ClinicError('Rg deve conter apenas números')
+        if len(rg) > 13:
+            raise ClinicError('Rg deve conter no máximo 13 caracteres')
         return rg
 
     @staticmethod
@@ -49,10 +52,24 @@ class Validacao:
     
     @staticmethod
     def validarNumero(numero):
+        if len(numero) > 5:
+            raise ClinicError('O número da casa deve ter no máximo 5 dígitos')
         if not numero.isdigit():
             raise ClinicError('O número da casa é inválido')
             
         return int(numero)
+    
+    def validarAno(ano):
+        agora = time.gmtime(time.time())
+        
+        if ano == '':
+            raise ClinicError('O campo "Ano de graduação é obrigatório')
+        if not ano.isdigit():
+            raise ClinicError('O campo "Ano de graduação deve conter apenas números"')
+        if int(ano) > agora[0]: #0 é a posicao do ano
+            raise ClinicError(f'O campo "Ano de graduação" não pode ser maior que {agora[0]}')
+
+        return int(ano)
     
     @staticmethod
     def validarPessoa(pessoa):
@@ -66,4 +83,10 @@ class Validacao:
         Validacao.validarNome(endereco.cidade, 'cidade') #cidade
         Validacao.validarEstado(endereco.estado)
         Validacao.validarNumero(endereco.numero)
+    
+    @staticmethod
+    def validarEnfermeiro(enfermeiro):
+        Validacao.validarPessoa(enfermeiro)
+        Validacao.validarAno(enfermeiro.ano_graduacao)
+        Validacao.validarNome(enfermeiro.nome_faculdade, "Faculdade de graduação")
 

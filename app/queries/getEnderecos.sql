@@ -1,1 +1,2 @@
-SELECT * FROM enderecos
+use clinic;
+SELECT * FROM enderecos;

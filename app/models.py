@@ -19,15 +19,15 @@ class Funcionario(Pessoa):
     pass
 
 class Enfermeiro(Funcionario):
-    def __init__(self, nome, rg, endereco, telefones, ano_graduacao, nome_faculdade, titulo_tcc, id=None):
-        super().__init__(nome, rg, endereco, telefones, id)
+    def __init__(self, nome, rg, endereco, telefone, ano_graduacao, nome_faculdade, titulo_tcc, id=None):
+        super().__init__(nome, rg, endereco, telefone, id)
         self.ano_graduacao = ano_graduacao
         self.nome_faculdade = nome_faculdade
         self.titulo_tcc = titulo_tcc
 
 class Medico(Funcionario):
-    def __init__(self, nome, rg, endereco, telefones, crm, id=None):
-        super().__init__(nome, rg, endereco, telefones, id)
+    def __init__(self, nome, rg, endereco, telefone, crm, id=None):
+        super().__init__(nome, rg, endereco, telefone, id)
         self.crm = crm
 
 class Convenio:

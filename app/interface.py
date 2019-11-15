@@ -1,10 +1,13 @@
 from tkinter import *
+from tkinter import ttk
 from validacao import Validacao
 from functools import partial
 import services
 import models
 class Interface:
     #posicionamento
+    PADY_MENU_PRINCIPAL = 20
+    PADX_MENU_PRINCIPAL = 10
     PADY = 10
     PADX = 15
     LISTAR_BUTTON_WIDTH = 5
@@ -21,8 +24,9 @@ class Interface:
     ESTADO = 4
     NUMERO = 5
     TELEFONE = 6
-    ERRO = 7
-    BOTOES = 8
+    ANO_GRADUACAO = 7
+    NOME_FACULDADE = 8
+    TITULO_TCC = 9
 
     def __init__(self, raiz, largura, altura):
         self.LARGURA = largura
@@ -40,31 +44,58 @@ class Interface:
     def menuPrincipal(self):
         self.resetarTela()
 
-        #elementos
+        #Criação das abas
+        abas = ttk.Notebook(self.main_container)
+        frame_pacientes = Frame(abas)
+        frame_funcionarios = Frame(abas)
+        frame_convenios = Frame(abas)
+        abas.pack(fill=BOTH)
+
+        abas.add(frame_pacientes, text='Pacientes')
+        abas.add(frame_funcionarios, text='Funcionários')
+        abas.add(frame_convenios, text='Convênios')
+
         botoes = [
-            Button(self.main_container, text='Novo Paciente', command=lambda: self.renderFormulario(models.Pessoa)),
-            Button(self.main_container, text='Listar Pacientes', command=lambda: self.listar(models.Pessoa)),
-            Button(self.main_container, text='Novo Funcionário'),
-            Button(self.main_container, text='Listar Funcionários'),
-            Button(self.main_container, text='Novo Convênio'),
-            Button(self.main_container, text='Listar Convênios'),
+            Button(frame_pacientes, text='Cadastrar Paciente', command=lambda: self.renderFormulario(models.Pessoa)),
+            Button(frame_pacientes, text='Lista de Pacientes', command=lambda: self.listar(models.Pessoa)),
+            Button(frame_funcionarios, text='Cadastrar Funcionário', command=self.chooseFuncionarioFunction),
+            Button(frame_funcionarios, text='Lista de Funcionários', command=lambda: self.listar(models.Pessoa)),
+            Button(frame_convenios, text='Cadastrar Convênio', command=lambda: self.listar(models.Pessoa)),
+            Button(frame_convenios, text='Lista de Convênios', command=lambda: self.listar(models.Pessoa)),
         ]
 
-        textos = [
-            Label(self.main_container, text='Pacientes:'),
-            Label(self.main_container, text='Funcionários:'),
-            Label(self.main_container, text='Convênios:'),
+        coluna = 0
+        for posicao, botao in enumerate(botoes):
+            botoes[posicao].grid(row=0, column=coluna, pady=self.PADY_MENU_PRINCIPAL, padx=self.PADX_MENU_PRINCIPAL)
+            if coluna == 0:
+                coluna = 1
+            else:
+                coluna = 0
+    
+    def chooseFuncionarioFunction(self):
+        self.resetarTela()
+
+        titulo = Label(self.main_container, text='Selecione a função:')
+        titulo.grid(row=0, column=0, pady=self.PADY)
+
+        frame_botoes = Frame(self.main_container, bd=1, relief='solid')
+        frame_botoes.grid(row=1, column=0, pady=self.PADY)
+
+        botoes = [
+            Button(frame_botoes, text='Limpeza'),
+            Button(frame_botoes, text='Médico'),
+            Button(frame_botoes, text='Enfermeiro', command=lambda: self.renderFormulario(models.Enfermeiro))
         ]
 
-        linha = 0
-        cont_botoes = 0
-        for i in range(0,3):
-            textos[i].grid(row=linha, column=0, columnspan=2, pady=self.PADY, padx=self.PADX)
-            linha+=1
-            for i in range(0,2):
-                botoes[cont_botoes].grid(row=linha, column=i, pady=self.PADY, padx=self.PADX)
-                cont_botoes += 1
-            linha += 1
+        for posicao, botao in enumerate(botoes):
+            botao.grid(row=1, column=posicao+1, padx=self.PADX)
+        
+        frame_voltar = Frame(self.main_container)
+        frame_voltar.grid(row=2, column=0, pady=self.PADY)
+
+        botao_voltar = Button(frame_voltar, text='Voltar', command=self.menuPrincipal)
+        botao_voltar.pack()
+
         
     def renderFormulario(self, classe, objeto=None, edit=False):
         '''Renderiza o formulário de uma classe (pessoa, funcionario, convenio)
@@ -95,8 +126,30 @@ class Interface:
                 ]
                 id_objeto = objeto.id
                 id_endereco = objeto.endereco.id
-            
-        
+        elif classe is models.Funcionario:
+            campos = [
+                {'nome': 'Nome:', 'obs': ''},
+                {'nome': 'Rg:', 'obs': '*Apenas números'},
+                {'nome': 'Rua:', 'obs': ''},
+                {'nome': 'Cidade:', 'obs': ''},
+                {'nome': 'Estado:', 'obs': '*Sigla'},
+                {'nome': 'Número', 'obs': ''},
+                {'nome': 'Telefone:', 'obs': ''},
+            ]
+        elif classe is models.Enfermeiro:
+            campos = [
+                {'nome': 'Nome:', 'obs': ''},
+                {'nome': 'Rg:', 'obs': '*Apenas números'},
+                {'nome': 'Rua:', 'obs': ''},
+                {'nome': 'Cidade:', 'obs': ''},
+                {'nome': 'Estado:', 'obs': '*Sigla'},
+                {'nome': 'Número', 'obs': ''},
+                {'nome': 'Telefone:', 'obs': ''},
+                {'nome': 'Ano da graduação:', 'obs':''},
+                {'nome': 'Faculdade de graduação:', 'obs':''},
+                {'nome': 'Título do TCC:', 'obs':''},
+            ]
+
         self.resetarTela()
         
         #criacao de um input para cada campo
@@ -127,15 +180,20 @@ class Interface:
         
         # Comum a todos os objetos, aqui não é preciso mudar nada
         self.label_erro = Label(self.main_container)
-        self.label_erro.grid(row=self.ERRO, column=0, columnspan=3)
+        self.label_erro.grid(row=len(campos), column=0, columnspan=3)
 
         self.frame_botoes = Frame(self.main_container)
-        self.frame_botoes.grid(row=self.BOTOES, column=0, columnspan=3)
+        self.frame_botoes.grid(row=len(campos)+1, column=0, columnspan=3)
         
         botoes = [
-            Button(self.frame_botoes, text='Voltar', command=self.menuPrincipal),
+            Button(self.frame_botoes, text='Voltar'),
             Button(self.frame_botoes, text='Cadastrar', command= lambda:self.alterarBancoDeDados(classe, edit, id_endereco, id_objeto))
         ]
+
+        if edit:
+            botoes[0]['command'] = lambda: self.listar(classe)
+        else:
+            botoes[0]['command'] = self.menuPrincipal
 
 
         for posicao, botao in enumerate(botoes):
@@ -143,7 +201,17 @@ class Interface:
         
     
     def alterarBancoDeDados(self, classe, edit=False, id_endereco=None, id_objeto=None):
-        '''Cadastra ou altera um objeto no banco de dados dependendo da variavel edit'''
+        '''
+        Cadastra ou altera um objeto no banco de dados dependendo da variavel edit
+        Este método cria um objeto da classe passada como parâmetro e utiliza um método de 
+        services de edição ou de cadastro dependendo da variável edit, se ela for True é preciso
+        passar os próximos dois parâmetros para identificarmos os objetos no BD;
+
+        classe: classe no qual o objeto cadastrado é instância,
+        edit: define se o serviço utilizado é de edição ou de cadastro,
+        id_endereco: para editar precisamos passá-lo,
+        id_objeto: também necessário para edição
+        '''
 
         #Todos os objetos tem um endereço
         endereco = models.Endereco(
@@ -166,21 +234,43 @@ class Interface:
                 self.lista_inputs[self.TELEFONE].get().strip(),
                 id_objeto
             )
+
             metodo_validacao = Validacao.validarPessoa
+
             if edit:
                 servico = services.editarPaciente
             else:
                 servico = services.cadastrarPaciente
+        elif classe is models.Enfermeiro:
+            objeto = models.Enfermeiro(
+                self.lista_inputs[self.NOME].get().strip(),
+                self.lista_inputs[self.RG].get().strip(),
+                endereco,
+                self.lista_inputs[self.TELEFONE].get().strip(),
+                self.lista_inputs[self.ANO_GRADUACAO].get().strip(),
+                self.lista_inputs[self.NOME_FACULDADE].get().strip(),
+                self.lista_inputs[self.TITULO_TCC].get().strip()
+            )
+
+            metodo_validacao = Validacao.validarEnfermeiro
+            if edit:
+                pass
+            else:
+                servico = services.cadastrarEnfermeiro
 
         try:
             metodo_validacao(objeto)
+
             Validacao.validarEndereco(endereco)
+
             servico(objeto)
+
             self.label_erro['fg'] = 'green'
             self.label_erro['text'] = 'Cadastrado com sucesso'
+
             self.frame_botoes.destroy()
             self.frame_botoes = Frame(self.main_container)
-            self.frame_botoes.grid(row=self.BOTOES, column=0, columnspan=3)
+            self.frame_botoes.grid(row=len(self.lista_inputs)+1, column=0, columnspan=3)
             botao_voltar = Button(self.frame_botoes, text='Voltar', command=self.menuPrincipal)
             botao_voltar.grid(row=0, column=0)
               
