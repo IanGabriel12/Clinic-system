@@ -59,7 +59,7 @@ class Interface:
             Button(frame_pacientes, text='Cadastrar Paciente', command=lambda: self.renderFormulario(models.Pessoa)),
             Button(frame_pacientes, text='Lista de Pacientes', command=lambda: self.listar(models.Pessoa)),
             Button(frame_funcionarios, text='Cadastrar Funcionário', command=self.chooseFuncionarioFunction),
-            Button(frame_funcionarios, text='Lista de Funcionários', command=lambda: self.listar(models.Pessoa)),
+            Button(frame_funcionarios, text='Lista de Funcionários', command=lambda: self.listar(models.Funcionario)),
             Button(frame_convenios, text='Cadastrar Convênio', command=lambda: self.listar(models.Pessoa)),
             Button(frame_convenios, text='Lista de Convênios', command=lambda: self.listar(models.Pessoa)),
         ]
@@ -82,7 +82,7 @@ class Interface:
         frame_botoes.grid(row=1, column=0, pady=self.PADY)
 
         botoes = [
-            Button(frame_botoes, text='Limpeza'),
+            Button(frame_botoes, text='Limpeza', command= lambda: self.renderFormulario(models.Funcionario)),
             Button(frame_botoes, text='Médico'),
             Button(frame_botoes, text='Enfermeiro', command=lambda: self.renderFormulario(models.Enfermeiro))
         ]
@@ -106,7 +106,7 @@ class Interface:
         dados = []
         id_endereco = None
         id_objeto = None
-        if classe is models.Pessoa:
+        if classe is models.Pessoa or classe is models.Funcionario:
             #Colocados na ordem de aparição
             campos = [
                 {'nome': 'Nome:', 'obs': ''},
@@ -118,6 +118,7 @@ class Interface:
                 {'nome': 'Telefone:', 'obs': ''},
             ]
 
+            # Se passarmos um objeto como parâmetro, os dados já deverão estar preenchidos.
             if objeto != None:
                 dados = [
                     objeto.nome, objeto.rg, objeto.endereco.rua,
@@ -126,16 +127,6 @@ class Interface:
                 ]
                 id_objeto = objeto.id
                 id_endereco = objeto.endereco.id
-        elif classe is models.Funcionario:
-            campos = [
-                {'nome': 'Nome:', 'obs': ''},
-                {'nome': 'Rg:', 'obs': '*Apenas números'},
-                {'nome': 'Rua:', 'obs': ''},
-                {'nome': 'Cidade:', 'obs': ''},
-                {'nome': 'Estado:', 'obs': '*Sigla'},
-                {'nome': 'Número', 'obs': ''},
-                {'nome': 'Telefone:', 'obs': ''},
-            ]
         elif classe is models.Enfermeiro:
             campos = [
                 {'nome': 'Nome:', 'obs': ''},
@@ -149,6 +140,17 @@ class Interface:
                 {'nome': 'Faculdade de graduação:', 'obs':''},
                 {'nome': 'Título do TCC:', 'obs':''},
             ]
+
+            if objeto != None:
+                dados = [
+                    objeto.nome, objeto.rg, objeto.endereco.rua,
+                    objeto.endereco.cidade, objeto.endereco.estado,
+                    objeto.endereco.numero, objeto.telefone, objeto.ano_graduacao,
+                    objeto.nome_faculdade, objeto.titulo_tcc
+                ]
+                id_objeto = objeto.id
+                id_endereco = objeto.endereco.id
+
 
         self.resetarTela()
         
@@ -191,6 +193,10 @@ class Interface:
         ]
 
         if edit:
+            if isinstance(objeto, models.Funcionario):
+                classe = models.Funcionario
+            elif isinstance(objeto, models.Pessoa):
+                classe = models.Pessoa
             botoes[0]['command'] = lambda: self.listar(classe)
         else:
             botoes[0]['command'] = self.menuPrincipal
@@ -241,6 +247,20 @@ class Interface:
                 servico = services.editarPaciente
             else:
                 servico = services.cadastrarPaciente
+        elif classe is models.Funcionario:
+            objeto = models.Funcionario(
+                self.lista_inputs[self.NOME].get().strip(),
+                self.lista_inputs[self.RG].get().strip(),
+                endereco,
+                self.lista_inputs[self.TELEFONE].get().strip(),
+                id_objeto
+            )
+
+            metodo_validacao = Validacao.validarPessoa
+            if edit:
+                servico = services.editarFuncionarioLimpeza
+            else:
+                servico = services.cadastrarFuncionarioLimpeza
         elif classe is models.Enfermeiro:
             objeto = models.Enfermeiro(
                 self.lista_inputs[self.NOME].get().strip(),
@@ -249,12 +269,13 @@ class Interface:
                 self.lista_inputs[self.TELEFONE].get().strip(),
                 self.lista_inputs[self.ANO_GRADUACAO].get().strip(),
                 self.lista_inputs[self.NOME_FACULDADE].get().strip(),
-                self.lista_inputs[self.TITULO_TCC].get().strip()
+                self.lista_inputs[self.TITULO_TCC].get().strip(),
+                id_objeto
             )
 
             metodo_validacao = Validacao.validarEnfermeiro
             if edit:
-                pass
+                servico = services.editarEnfermeiro
             else:
                 servico = services.cadastrarEnfermeiro
 
@@ -283,48 +304,63 @@ class Interface:
         '''Serve para pacientes, funcionarios, ou convenios'''
        
         objetos = []
+        notebook = ttk.Notebook(self.main_container)
+        abas = []
         if classe is models.Pessoa:
-            objetos = services.getPacientes()     
+            objetos.append(services.getPacientes())
+            abas.append(Frame(notebook))
+            notebook.add(abas[0], text='Pacientes')   
+        elif classe is models.Funcionario:
+            objetos.extend(services.getFuncionarios())
+            for i in range(0,3):
+                abas.append(Frame(notebook))
+            notebook.add(abas[0], text='Faxineiros')
+            notebook.add(abas[1], text='Enfermeiros')
+            notebook.add(abas[2], text='Médicos')
         
         #Frame do canvas
-        frame_canvas = Frame(self.main_container)
-        frame_canvas.grid(row=0, column=0)
+        for posicao_aba, aba in enumerate(abas):
+            frame_canvas = Frame(aba)
+            frame_canvas.grid(row=0, column=0)
 
-        #Canvas e o frame
-        canvas = Canvas(frame_canvas)
-        list_frame = Frame(canvas)
-        
-        list_frame.grid(row=0, column=0)
-        
-        canvas.pack(side=LEFT)
-
-        #Barra de rolagem
-        scrollbar = Scrollbar(frame_canvas, command=canvas.yview)
-        scrollbar.pack(fill=Y, side=RIGHT)
-        canvas.configure(yscrollcommand=scrollbar.set, scrollregion=(0,0,self.LARGURA, self.TAMANHO_OBJETO_LISTA*len(objetos)))
-
-
-        for posicao, objeto in enumerate(objetos):
-            frame_objeto = Frame(list_frame, height=self.TAMANHO_OBJETO_LISTA,)
-            nome = Label(frame_objeto, text=objeto.nome, width=self.LISTAR_LABEL_WIDTH)
-            botao_editar = Button(frame_objeto, text='Editar', width=self.LISTAR_BUTTON_WIDTH, command=partial(self.renderFormulario, classe, objeto, True))
-            botao_excluir = Button(frame_objeto, text='Excluir', command=partial(self.confirmarExclusao, objeto), width=self.LISTAR_BUTTON_WIDTH)
+            #Canvas e o frame
+            canvas = Canvas(frame_canvas)
+            list_frame = Frame(canvas)
             
-            nome.grid(row=0, column=0)
-            botao_editar.grid(row=0, column=1)
-            botao_excluir.grid(row=0, column=2)
-            frame_objeto.grid(column=0, row=posicao, pady=self.PADY)
+            list_frame.grid(row=0, column=0)
             
+            canvas.pack(side=LEFT)
 
-        canvas.create_window(0,0, anchor='nw', window=list_frame)
+            #Barra de rolagem
+            scrollbar = Scrollbar(frame_canvas, command=canvas.yview)
+            scrollbar.pack(fill=Y, side=RIGHT)
+            canvas.configure(yscrollcommand=scrollbar.set, scrollregion=(0,0,self.LARGURA, self.TAMANHO_OBJETO_LISTA*len(objetos[posicao_aba])))
+
+
+            for posicao, objeto in enumerate(objetos[posicao_aba]):
+                frame_objeto = Frame(list_frame, height=self.TAMANHO_OBJETO_LISTA,)
+                nome = Label(frame_objeto, text=objeto.nome, width=self.LISTAR_LABEL_WIDTH)
+                botao_editar = Button(frame_objeto, text='Editar', width=self.LISTAR_BUTTON_WIDTH, command=partial(self.renderFormulario, type(objeto), objeto, True))
+                botao_excluir = Button(frame_objeto, text='Excluir', command=partial(self.confirmarExclusao, objeto), width=self.LISTAR_BUTTON_WIDTH)
+                
+                nome.grid(row=0, column=0)
+                botao_editar.grid(row=0, column=1)
+                botao_excluir.grid(row=0, column=2)
+                frame_objeto.grid(column=0, row=posicao, pady=self.PADY)
+                
+
+            canvas.create_window(0,0, anchor='nw', window=list_frame)
+        
+        #botão para voltar
+        notebook.grid(row=0, column=0)
         botao_voltar = Button(self.main_container, text='Voltar', command=self.menuPrincipal)
         botao_voltar.grid(row=1, column=0)
               
     def confirmarExclusao(self, objeto):
         self.resetarTela()
-        classe = ''
-
-        if isinstance(objeto, models.Pessoa):
+        if isinstance(objeto, models.Funcionario):
+            classe = models.Funcionario
+        elif isinstance(objeto, models.Pessoa):
             classe = models.Pessoa
         
         self.frame_botoes = Frame(self.main_container)
@@ -343,7 +379,7 @@ class Interface:
         self.resetarTela()
 
         label = Label(self.main_container, text='Excluido com sucesso', fg='green')
-        botao = Button(self.main_container, command=lambda: self.listar(classe))
+        botao = Button(self.main_container, text='Voltar', command=lambda: self.listar(classe))
 
         label.pack()
         botao.pack()
