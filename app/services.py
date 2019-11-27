@@ -360,3 +360,34 @@ def excluir(objeto):
 
     con.commit()
     con.close()
+
+
+def adicionarMedicoAoConvenio(medico, convenio):
+    print(medico.id)
+    print(convenio.id)
+    iniciarConexao()
+    cursor.execute(f'''INSERT INTO medicos_convenios (convenio_id, medico_id)
+        VALUES ("{convenio.id}", "{medico.id}")'''
+    )
+    con.commit()
+    con.close()
+
+def pesquisarMedicoDoConvenio(medico, convenio):
+    iniciarConexao()
+    cursor.execute(f'''SELECT * FROM medicos_convenios WHERE medico_id = {medico.id}
+        AND convenio_id = {convenio.id}'''
+    )
+
+    bd = cursor.fetchall()
+
+    con.commit()
+    con.close()
+    return bd
+
+def removerMedicoDoConvenio(medico, convenio):
+    iniciarConexao()
+    cursor.execute(f'''DELETE FROM medicos_convenios WHERE medico_id = {medico.id}
+        AND convenio_id = {convenio.id}'''
+    )
+    con.commit()
+    con.close()

@@ -1,8 +1,8 @@
 from interface import *
 from tkinter import *
 
-altura = 400
-largura = 500
+altura = 600
+largura = 700
 raiz = Tk()
 Interface(raiz, largura, altura)
 raiz.title('Hello world')

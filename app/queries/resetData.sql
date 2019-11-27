@@ -45,4 +45,12 @@ CREATE TABLE IF NOT EXISTS telefones_medicos(
     telefone VARCHAR(11) NOT NULL,
     medico_id INT NOT NULL,
     CONSTRAINT fkTelefoneMedico FOREIGN KEY (medico_id) REFERENCES funcionarios(id) ON DELETE CASCADE
-)
+);
+
+CREATE TABLE IF NOT EXISTS medicos_convenios(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    convenio_id INT NOT NULL,
+    medico_id INT NOT NULL,
+    CONSTRAINT fkConvenio FOREIGN KEY (convenio_id) REFERENCES convenios(id) ON DELETE CASCADE,
+    CONSTRAINT fkMedico FOREIGN KEY (medico_id) REFERENCES funcionarios(id) ON DELETE CASCADE
+);

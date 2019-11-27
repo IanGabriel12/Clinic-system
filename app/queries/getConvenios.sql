@@ -1,2 +1,2 @@
 use clinic;
-SELECT * FROM convenios;
+SELECT * FROM medicos_convenios;

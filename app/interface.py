@@ -10,7 +10,7 @@ class Interface:
     PADX_MENU_PRINCIPAL = 10
     PADY = 10
     PADX = 15
-    LISTAR_BUTTON_WIDTH = 5
+    LISTAR_BUTTON_WIDTH = 8
     LISTAR_LABEL_WIDTH = 25
     TAMANHO_OBJETO_LISTA = 50 # Qualquer outro valor dá errado (Não sei porque)
 
@@ -378,7 +378,7 @@ class Interface:
             self.label_erro['fg'] = 'red'
             self.label_erro['text'] = e
     
-    def listar(self, classe):
+    def listar(self, classe, adicionar_ao_convenio=False, convenio_para_adicionar=None):
         self.resetarTela()
         '''Serve para pacientes, funcionarios, ou convenios'''
        
@@ -391,11 +391,18 @@ class Interface:
             notebook.add(abas[0], text='Pacientes')   
         elif classe is models.Funcionario:
             objetos.extend(services.getFuncionarios())
-            for i in range(0,3):
+            if adicionar_ao_convenio:
+                #lista apenas os médicos
+                objetos = [objetos[-1]]
                 abas.append(Frame(notebook))
-            notebook.add(abas[0], text='Faxineiros')
-            notebook.add(abas[1], text='Enfermeiros')
-            notebook.add(abas[2], text='Médicos')
+                notebook.add(abas[0], text='Médicos')
+            else:
+                #lista todos os funcionários
+                for i in range(0,3):
+                    abas.append(Frame(notebook))
+                notebook.add(abas[0], text='Faxineiros')
+                notebook.add(abas[1], text='Enfermeiros')
+                notebook.add(abas[2], text='Médicos')
         elif classe is models.Convenio:
             objetos.append(services.getConvenios())
             abas.append(Frame(notebook))
@@ -407,7 +414,7 @@ class Interface:
             frame_canvas.grid(row=0, column=0)
 
             #Canvas e o frame
-            canvas = Canvas(frame_canvas)
+            canvas = Canvas(frame_canvas, width=500)
             list_frame = Frame(canvas)
             
             list_frame.grid(row=0, column=0)
@@ -423,12 +430,29 @@ class Interface:
             for posicao, objeto in enumerate(objetos[posicao_aba]):
                 frame_objeto = Frame(list_frame, height=self.TAMANHO_OBJETO_LISTA,)
                 nome = Label(frame_objeto, text=objeto.nome, width=self.LISTAR_LABEL_WIDTH)
-                botao_editar = Button(frame_objeto, text='Editar', width=self.LISTAR_BUTTON_WIDTH, command=partial(self.renderFormulario, type(objeto), objeto, True))
-                botao_excluir = Button(frame_objeto, text='Excluir', command=partial(self.confirmarExclusao, objeto), width=self.LISTAR_BUTTON_WIDTH)
+                if adicionar_ao_convenio:
+                    botao_adicionar = Button(frame_objeto, width=self.LISTAR_BUTTON_WIDTH)
+                    botao_adicionar.grid(row=0, column=1)
+                    if len(services.pesquisarMedicoDoConvenio(objeto, convenio_para_adicionar)) == 0:
+                        #o médico não foi adicionado ainda
+                        botao_adicionar['text'] = 'Adicionar'
+                        botao_adicionar['fg'] = 'green'
+                        botao_adicionar['command'] = partial(self.adicionarMedicoToConvenio, objeto, convenio_para_adicionar)
+                    else:
+                        #o médico já foi adicionado
+                        botao_adicionar['text'] = 'Remover'
+                        botao_adicionar['fg'] = 'red'
+                        botao_adicionar['command'] = partial(self.removerMedicoFromConvenio, objeto, convenio_para_adicionar)
+                else:
+                    botao_editar = Button(frame_objeto, text='Editar', width=self.LISTAR_BUTTON_WIDTH, command=partial(self.renderFormulario, type(objeto), objeto, True))
+                    botao_excluir = Button(frame_objeto, text='Excluir', command=partial(self.confirmarExclusao, objeto), width=self.LISTAR_BUTTON_WIDTH)
+                    botao_editar.grid(row=0, column=1)
+                    botao_excluir.grid(row=0, column=3)
+                if classe is models.Convenio:
+                    botao_add_medico = Button(frame_objeto, text='Add. Médico', width=self.LISTAR_BUTTON_WIDTH, command=partial(self.listar, models.Funcionario, True, objeto))
+                    botao_add_medico.grid(row=0, column=2)
                 
                 nome.grid(row=0, column=0)
-                botao_editar.grid(row=0, column=1)
-                botao_excluir.grid(row=0, column=2)
                 frame_objeto.grid(column=0, row=posicao, pady=self.PADY)
                 
 
@@ -436,7 +460,11 @@ class Interface:
         
         #botão para voltar
         notebook.grid(row=0, column=0)
-        botao_voltar = Button(self.main_container, text='Voltar', command=self.menuPrincipal)
+        botao_voltar = Button(self.main_container, text='Voltar')
+        if adicionar_ao_convenio:
+            botao_voltar['command'] = lambda: self.listar(models.Convenio)
+        else:
+            botao_voltar['command'] = self.menuPrincipal
         botao_voltar.grid(row=1, column=0)
               
     def confirmarExclusao(self, objeto):
@@ -468,5 +496,14 @@ class Interface:
 
         label.pack()
         botao.pack()
+    
+    def adicionarMedicoToConvenio(self, medico, convenio):
+        services.adicionarMedicoAoConvenio(medico, convenio)
+        self.listar(models.Funcionario, adicionar_ao_convenio=True, convenio_para_adicionar=convenio)
+    
+    def removerMedicoFromConvenio(self, medico, convenio):
+        services.removerMedicoDoConvenio(medico, convenio)
+        self.listar(models.Funcionario, adicionar_ao_convenio=True, convenio_para_adicionar=convenio)
+
         
         
