@@ -19,9 +19,12 @@ class Interface:
     #posição dos inputs de cadastro
     NOME = 0
     RG = 1
+    SIGLA_CONVENIO = 1
     RUA = 2
     CIDADE = 3
     ESTADO = 4
+    ESPECIALIZACOES = 7
+    CRM = 8
     NUMERO = 5
     TELEFONE = 6
     ANO_GRADUACAO = 7
@@ -60,8 +63,8 @@ class Interface:
             Button(frame_pacientes, text='Lista de Pacientes', command=lambda: self.listar(models.Pessoa)),
             Button(frame_funcionarios, text='Cadastrar Funcionário', command=self.chooseFuncionarioFunction),
             Button(frame_funcionarios, text='Lista de Funcionários', command=lambda: self.listar(models.Funcionario)),
-            Button(frame_convenios, text='Cadastrar Convênio', command=lambda: self.listar(models.Pessoa)),
-            Button(frame_convenios, text='Lista de Convênios', command=lambda: self.listar(models.Pessoa)),
+            Button(frame_convenios, text='Cadastrar Convênio', command=lambda: self.renderFormulario(models.Convenio)),
+            Button(frame_convenios, text='Lista de Convênios', command=lambda: self.listar(models.Convenio)),
         ]
 
         coluna = 0
@@ -83,7 +86,7 @@ class Interface:
 
         botoes = [
             Button(frame_botoes, text='Limpeza', command= lambda: self.renderFormulario(models.Funcionario)),
-            Button(frame_botoes, text='Médico'),
+            Button(frame_botoes, text='Médico', command=lambda: self.renderFormulario(models.Medico)),
             Button(frame_botoes, text='Enfermeiro', command=lambda: self.renderFormulario(models.Enfermeiro))
         ]
 
@@ -101,7 +104,6 @@ class Interface:
         '''Renderiza o formulário de uma classe (pessoa, funcionario, convenio)
         O formulário já vem preenchido se for para editar informações de uma pessoa existente
         '''
-
         campos = []
         dados = []
         id_endereco = None
@@ -150,6 +152,47 @@ class Interface:
                 ]
                 id_objeto = objeto.id
                 id_endereco = objeto.endereco.id
+        elif classe is models.Convenio:
+            campos = [
+                {'nome': 'Nome:', 'obs': ''},
+                {'nome': 'Sigla:', 'obs': ''},
+                {'nome': 'Rua:', 'obs': ''},
+                {'nome': 'Cidade:', 'obs': ''},
+                {'nome': 'Estado:', 'obs': '*Sigla'},
+                {'nome': 'Número', 'obs': ''},
+                {'nome': 'Telefone:', 'obs': ''},
+            ]
+
+            if objeto != None:
+                dados = [
+                    objeto.nome, objeto.sigla, objeto.endereco.rua, objeto.endereco.cidade,
+                    objeto.endereco.estado, objeto.endereco.numero,
+                    objeto.telefone,
+                ]
+                id_objeto = objeto.id
+                id_endereco = objeto.endereco.id
+        elif classe is models.Medico:
+            campos = [
+                {'nome': 'Nome:', 'obs': ''},
+                {'nome': 'Rg:', 'obs': '*Apenas números'},
+                {'nome': 'Rua:', 'obs': ''},
+                {'nome': 'Cidade:', 'obs': ''},
+                {'nome': 'Estado:', 'obs': '*Sigla'},
+                {'nome': 'Número:', 'obs': ''},
+                {'nome': 'Telefone(s):', 'obs': '*Separe-os usando ";"'},
+                {'nome': 'Especializações:', 'obs': '*Separe-as usando ";"'},
+                {'nome': 'N° CRM:', 'obs': ''},
+            ]
+
+            if objeto != None:
+                dados = [
+                    objeto.nome, objeto.rg, objeto.endereco.rua,
+                    objeto.endereco.cidade, objeto.endereco.estado,
+                    objeto.endereco.numero, ';'.join(objeto.telefone), objeto.especializacoes,
+                    objeto.crm
+                ]
+                id_objeto = objeto.id
+                id_endereco = objeto.endereco.id
 
 
         self.resetarTela()
@@ -189,7 +232,7 @@ class Interface:
         
         botoes = [
             Button(self.frame_botoes, text='Voltar'),
-            Button(self.frame_botoes, text='Cadastrar', command= lambda:self.alterarBancoDeDados(classe, edit, id_endereco, id_objeto))
+            Button(self.frame_botoes, text='Cadastrar', command= partial(self.alterarBancoDeDados,classe, edit, id_endereco, id_objeto))
         ]
 
         if edit:
@@ -278,6 +321,42 @@ class Interface:
                 servico = services.editarEnfermeiro
             else:
                 servico = services.cadastrarEnfermeiro
+        elif classe is models.Convenio:
+            objeto = models.Convenio(
+                self.lista_inputs[self.NOME].get().strip(),
+                self.lista_inputs[self.SIGLA_CONVENIO].get().strip(),
+                endereco,
+                self.lista_inputs[self.TELEFONE].get().strip(),
+                id=id_objeto
+            )
+            metodo_validacao = Validacao.validarConvenio
+            if edit:
+                servico = services.editarConvenio
+            else:
+                servico = services.cadastrarConvenio
+        elif classe is models.Medico:
+            #caso termine com ';' o último caractere é retirado para não causar problemas
+            telefones_string = self.lista_inputs[self.TELEFONE].get().strip()
+            if telefones_string.endswith(';'):
+                telefones_string = telefones_string[:-1]
+
+            telefones = [telefone for telefone in telefones_string.split(';')]
+            objeto = models.Medico(
+                self.lista_inputs[self.NOME].get().strip(),
+                self.lista_inputs[self.RG].get().strip(),
+                endereco,
+                telefones,
+                self.lista_inputs[self.ESPECIALIZACOES].get().strip(),
+                self.lista_inputs[self.CRM].get().strip(),
+                id=id_objeto
+            )
+
+            metodo_validacao = Validacao.validarMedico
+
+            if edit:
+                servico = services.editarMedico
+            else:
+                servico = services.cadastrarMedico
 
         try:
             metodo_validacao(objeto)
@@ -317,6 +396,10 @@ class Interface:
             notebook.add(abas[0], text='Faxineiros')
             notebook.add(abas[1], text='Enfermeiros')
             notebook.add(abas[2], text='Médicos')
+        elif classe is models.Convenio:
+            objetos.append(services.getConvenios())
+            abas.append(Frame(notebook))
+            notebook.add(abas[0], text='Convênios')
         
         #Frame do canvas
         for posicao_aba, aba in enumerate(abas):
@@ -362,6 +445,8 @@ class Interface:
             classe = models.Funcionario
         elif isinstance(objeto, models.Pessoa):
             classe = models.Pessoa
+        elif isinstance(objeto, models.Convenio):
+            classe = models.Convenio
         
         self.frame_botoes = Frame(self.main_container)
         msg = Label(self.main_container, text=f'Tem certeza que deseja excluir {objeto.nome}')

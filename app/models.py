@@ -26,19 +26,17 @@ class Enfermeiro(Funcionario):
         self.titulo_tcc = titulo_tcc
 
 class Medico(Funcionario):
-    def __init__(self, nome, rg, endereco, telefone, crm, id=None):
-        super().__init__(nome, rg, endereco, telefone, id)
+    def __init__(self, nome, rg, endereco, telefones, especializacoes, crm, is_ocupado=False, id=None):
+        super().__init__(nome, rg, endereco, telefones, id)
+        self.especializacoes = especializacoes
         self.crm = crm
+        self.is_ocupado = is_ocupado
 
 class Convenio:
-    def __init__(self, sigla, nome, telefone, hospital, medicos, id=None):
+    def __init__(self, nome, sigla, endereco, telefone, medicos=[], id=None):
+        self.nome = nome
         self.sigla = sigla
-        self.nome = nome
-        self.telefone = telefone
-        self.hospital = hospital
-        self.medicos = medicos
-
-class Hospital:
-    def __init__(self, nome, endereco):
-        self.nome = nome
         self.endereco = endereco
+        self.telefone = telefone
+        self.medicos = medicos
+        self.id = id

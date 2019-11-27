@@ -1,5 +1,3 @@
-DROP DATABASE clinic;
-CREATE DATABASE clinic;
 USE clinic;
 CREATE TABLE IF NOT EXISTS enderecos(
     id INT AUTO_INCREMENT PRIMARY KEY NOT NULL,
@@ -13,7 +11,7 @@ CREATE TABLE IF NOT EXISTS funcionarios(
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
     rg VARCHAR(13) NOT NULL,
-    telefone varchar(11) NOT NULL,
+    telefone varchar(11),
     tipo_funcionario VARCHAR(1),
     nome_faculdade VARCHAR(100),
     ano_graduacao INT(4),
@@ -32,3 +30,19 @@ CREATE TABLE IF NOT EXISTS pacientes(
     endereco_id INT NOT NULL,
     CONSTRAINT fkEnderecoPaciente FOREIGN KEY (endereco_id) REFERENCES enderecos(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS convenios(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nome VARCHAR(100) NOT NULL,
+    sigla VARCHAR(10) NOT NULL,
+    telefone VARCHAR(11) NOT NULL,
+    endereco_id INT NOT NULL,
+    CONSTRAINT fkEnderecoConvenio FOREIGN KEY (endereco_id) REFERENCES enderecos(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS telefones_medicos(
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    telefone VARCHAR(11) NOT NULL,
+    medico_id INT NOT NULL,
+    CONSTRAINT fkTelefoneMedico FOREIGN KEY (medico_id) REFERENCES funcionarios(id) ON DELETE CASCADE
+)

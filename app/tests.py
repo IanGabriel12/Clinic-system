@@ -1,14 +1,12 @@
-import models
-from interface import Interface
-import services
-from tkinter import *
-from tkinter import ttk
-import time
+horarios = []
+
+for i in range(0, 24):
+    horarios.append(i)
+
+for h in horarios:
+    print(str(h) + ':00')
 
 
-lista1 = [1,2,3,4]
-lista2 = [4,5,6,7]
-for element1, element2 in lista1, lista2:
-    print(element1, element2)
 
-
+opcoes = [int(opcao) for opcao in input('Digite algo').split(' ')]
+print(opcoes)

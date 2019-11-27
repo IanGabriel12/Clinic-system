@@ -15,8 +15,11 @@ class Validacao:
 
     @staticmethod
     def validarNome(nome, nome_campo):
+        limite_char = 100
         if nome == '':
             raise ClinicError(f'O campo "{nome_campo}" é obrigatório')
+        if len(nome) > limite_char:
+            raise ClinicError(f'O campo "{nome_campo}" não pode conter mais de {limite_char} caracteres')
         
         for letra in nome:
             if letra.isdigit():
@@ -41,10 +44,11 @@ class Validacao:
 
     @staticmethod
     def validarTelefone(telefone):
+        limite_digitos = 11
         if telefone == '':
             raise ClinicError('O campo "telefone" é obrigatório')
-        if len(telefone) != 11:
-            raise ClinicError('Telefone deve possuir 11 dígitos')
+        if len(telefone) != limite_digitos:
+            raise ClinicError(f'Telefone deve possuir {limite_digitos} dígitos')
         if not telefone.isdigit():
             raise ClinicError('Telefone deve conter apenas números')
         
@@ -52,13 +56,15 @@ class Validacao:
     
     @staticmethod
     def validarNumero(numero):
-        if len(numero) > 5:
-            raise ClinicError('O número da casa deve ter no máximo 5 dígitos')
+        limite_digitos = 5
+        if len(numero) > limite_digitos:
+            raise ClinicError(f'O número da casa deve ter no máximo {limite_digitos} dígitos')
         if not numero.isdigit():
             raise ClinicError('O número da casa é inválido')
             
         return int(numero)
     
+    @staticmethod
     def validarAno(ano):
         agora = time.gmtime(time.time())
         
@@ -72,10 +78,33 @@ class Validacao:
         return int(ano)
     
     @staticmethod
+    def validarSigla(sigla):
+        if len(sigla) > 10:
+            raise ClinicError('A Sigla deve ter no máximo 10 caracteres.')
+
+    @staticmethod
+    def validarCRM(crm):
+        tamanho_limite = 20
+        if not crm.isdigit():
+            raise ClinicError('O CRM deve conter apenas números.')
+        if len(crm) > tamanho_limite:
+            raise ClinicError(f'O CRM deve conter no máximo {tamanho_limite} dígitos.')
+    
+    @staticmethod
+    def validarEspecializacoes(especializacoes):
+        tamanho_especializacao = 200
+        if len(especializacoes) > tamanho_especializacao:
+            raise ClinicError(f'As especializacoes devem ter no máximo {tamanho_especializacao} caracteres')    
+    
+    @staticmethod
     def validarPessoa(pessoa):
         Validacao.validarNome(pessoa.nome, 'nome')
         Validacao.validarRg(pessoa.rg)
-        Validacao.validarTelefone(pessoa.telefone)
+        if isinstance(pessoa.telefone, list):
+            for telefone in pessoa.telefone:
+                Validacao.validarTelefone(telefone)
+        else:
+            Validacao.validarTelefone(pessoa.telefone)
     
     @staticmethod
     def validarEndereco(endereco):
@@ -89,4 +118,15 @@ class Validacao:
         Validacao.validarPessoa(enfermeiro)
         Validacao.validarAno(enfermeiro.ano_graduacao)
         Validacao.validarNome(enfermeiro.nome_faculdade, "Faculdade de graduação")
-
+    
+    @staticmethod
+    def validarConvenio(convenio):
+        Validacao.validarNome(convenio.nome, 'nome')
+        Validacao.validarSigla(convenio.sigla)
+        Validacao.validarTelefone(convenio.telefone)
+    
+    @staticmethod
+    def validarMedico(medico):
+        Validacao.validarPessoa(medico)
+        Validacao.validarEspecializacoes(medico.especializacoes)
+        Validacao.validarCRM(medico.crm)
