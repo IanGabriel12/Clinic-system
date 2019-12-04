@@ -40,3 +40,14 @@ class Convenio:
         self.telefone = telefone
         self.medicos = medicos
         self.id = id
+
+class Consulta:
+    def __init__(self, paciente, convenio, medico, descricao, dia, mes, hora, id=None):
+        self.paciente = paciente
+        self.convenio = convenio
+        self.medico = medico
+        self.descricao = descricao
+        self.dia = dia
+        self.mes = mes
+        self.hora = hora
+        self.id = id

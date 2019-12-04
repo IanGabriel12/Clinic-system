@@ -1,12 +1,7 @@
-horarios = []
+import services
+import models
 
-for i in range(0, 24):
-    horarios.append(i)
+consulta = services.getConsultas()[0]
 
-for h in horarios:
-    print(str(h) + ':00')
-
-
-
-opcoes = [int(opcao) for opcao in input('Digite algo').split(' ')]
-print(opcoes)
+consulta.descricao = 'Suspeita de Tuberculose'
+services.editarConsulta(consulta)

@@ -1,4 +1,5 @@
 import time
+import services
 class ClinicError(Exception):
     pass
 
@@ -97,6 +98,26 @@ class Validacao:
             raise ClinicError(f'As especializacoes devem ter no máximo {tamanho_especializacao} caracteres')    
     
     @staticmethod
+    def validarDataEHora(dia, mes, hora):
+
+        max_dias = [31, 29, 13, 30, 31, 30, 31, 31, 30, 31, 30, 31] # cada posicao é um mês
+
+        if not dia.isdigit():
+            raise ClinicError('Dia deve ser um número')
+        if not hora.isdigit():
+            raise ClinicError('Hora deve ser um número')
+        if not mes.isdigit():
+            raise ClinicError('Mes deve ser um número')
+        if int(hora) < 0 or int(hora) > 23:
+            raise ClinicError('A hora deve ser entre 0 e 23')
+        if int(mes) < 1 or int(mes) > 12:
+            raise ClinicError('O mes deve ser entre 1 e 12')
+        if int(dia) < 1:
+            raise ClinicError('Insira um dia válido')
+        if int(dia) > max_dias[int(mes)-1]:
+            raise ClinicError(f'Não existe dia {dia} no mes {mes}')
+        
+    @staticmethod
     def validarPessoa(pessoa):
         Validacao.validarNome(pessoa.nome, 'nome')
         Validacao.validarRg(pessoa.rg)
@@ -130,3 +151,10 @@ class Validacao:
         Validacao.validarPessoa(medico)
         Validacao.validarEspecializacoes(medico.especializacoes)
         Validacao.validarCRM(medico.crm)
+    
+    @staticmethod
+    def validarConsulta(consulta, edit=False):
+        Validacao.validarDataEHora(consulta.dia, consulta.mes, consulta.hora)
+        erro = services.verificarDisponibilidade(consulta, edit)
+        if erro != None:
+            raise ClinicError(erro)

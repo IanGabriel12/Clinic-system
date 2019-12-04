@@ -1,4 +1,3 @@
-from validacao import Validacao
 import models
 import pymysql as mysql
 
@@ -31,6 +30,15 @@ RUA = 1
 CIDADE = 2
 ESTADO = 3
 NUMERO = 4
+
+#CONSULTA
+PACIENTE_ID = 1
+CONVENIO_ID = 2
+MEDICO_ID = 3
+DESCRICAO = 4
+DIA = 5
+MES = 6
+HORA = 7
 
 
 con = None
@@ -87,6 +95,7 @@ def getPacientes():
         pacientes.append(paciente)
 
     return pacientes
+
 
 def cadastrarEnfermeiro(enfermeiro):
     """recebe um objeto da classe enfermeiro e cadastra no banco de dados"""
@@ -227,6 +236,8 @@ def getFuncionarios():
         funcionarios.append(medicos)
     
     return funcionarios
+
+
 
 def cadastrarConvenio(convenio):
     iniciarConexao()
@@ -391,3 +402,85 @@ def removerMedicoDoConvenio(medico, convenio):
     )
     con.commit()
     con.close()
+
+def cadastrarConsulta(consulta):
+    iniciarConexao()
+    cursor.execute(f'''INSERT INTO consultas (paciente_id, convenio_id, medico_id, descricao, dia, mes, hora)
+        VALUES ("{consulta.paciente.id}", "{consulta.convenio.id}", "{consulta.medico.id}",
+        "{consulta.descricao}", "{int(consulta.dia)}", "{consulta.mes}", "{int(consulta.hora)}")'''
+    )
+    con.commit()
+    con.close()
+
+def editarConsulta(consulta):
+    iniciarConexao()
+    cursor.execute(f'''UPDATE consultas SET descricao = "{consulta.descricao}", dia = "{consulta.dia}",
+    mes = "{consulta.mes}", hora = "{consulta.hora}" WHERE id={consulta.id}''')
+    con.commit()
+    con.close()
+
+def removerConsulta(consulta):
+    iniciarConexao()
+    cursor.execute(f'''DELETE FROM consultas WHERE id={consulta.id}''')
+    con.commit()
+    con.close()
+
+def getConsultas():
+    iniciarConexao()
+    cursor.execute(f'''SELECT * FROM consultas''')
+    consultas_bd = cursor.fetchall()
+    con.close()
+
+    consultas = []
+    for consulta in consultas_bd:
+        #achar o paciente
+        for paciente in getPacientes():
+            if paciente.id == consulta[PACIENTE_ID]:
+                paciente_consulta = paciente
+                break
+        
+        #achar o convenio
+        for convenio in getConvenios():
+            if convenio.id == consulta[CONVENIO_ID]:
+                convenio_consulta = convenio
+                break
+        
+        #achar o médico
+        for medico in getFuncionarios()[-1]:
+            if medico.id == consulta[MEDICO_ID]:
+                medico_consulta = medico
+                break
+        
+        consulta = models.Consulta(paciente_consulta, convenio_consulta, medico_consulta,
+            consulta[DESCRICAO], consulta[DIA], consulta[MES], consulta[HORA], consulta[ID]
+        )
+
+        consultas.append(consulta)
+        
+    return consultas
+
+def verificarDisponibilidade(consulta, edit):
+    iniciarConexao()
+    #disponibilidade do médico
+    command = f'''SELECT * FROM consultas WHERE medico_id={consulta.medico.id}
+        AND dia={consulta.dia} AND mes={consulta.mes} AND hora={consulta.hora}'''
+    if edit:
+        command += f''' AND id != {consulta.id}'''
+        
+    cursor.execute(command)
+    indisponivel = bool(cursor.fetchall())
+    if indisponivel:
+        con.close()
+        return f'O Dr.{consulta.medico.nome} está indisponível neste horário'
+
+    #disponibilidade do paciente
+    command = f'''SELECT * FROM consultas WHERE paciente_id={consulta.paciente.id}
+        AND dia={consulta.dia} AND mes={consulta.mes} AND hora={consulta.hora}'''
+    if edit:
+        command += f''' AND id != {consulta.id}'''
+        
+    cursor.execute(command)
+    indisponivel = bool(cursor.fetchall())
+    if indisponivel:
+        con.close()
+        return f'O paciente {consulta.medico.nome} está indisponível neste horário'

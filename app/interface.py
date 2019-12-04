@@ -11,7 +11,7 @@ class Interface:
     PADY = 10
     PADX = 15
     LISTAR_BUTTON_WIDTH = 8
-    LISTAR_LABEL_WIDTH = 25
+    LISTAR_LABEL_WIDTH = 35
     TAMANHO_OBJETO_LISTA = 50 # Qualquer outro valor dá errado (Não sei porque)
 
     PADY_CADASTRO = 5
@@ -30,6 +30,17 @@ class Interface:
     ANO_GRADUACAO = 7
     NOME_FACULDADE = 8
     TITULO_TCC = 9
+
+    #Inputs da consulta
+    DESCRICAO = 0
+    DIA = 1
+    MES = 2
+    HORA = 3
+
+    #posição dos dados na consulta
+    PACIENTE = 0
+    CONVENIO = 1
+    MEDICO = 2
 
     def __init__(self, raiz, largura, altura):
         self.LARGURA = largura
@@ -52,11 +63,13 @@ class Interface:
         frame_pacientes = Frame(abas)
         frame_funcionarios = Frame(abas)
         frame_convenios = Frame(abas)
+        frame_consulta = Frame(abas)
         abas.pack(fill=BOTH)
 
         abas.add(frame_pacientes, text='Pacientes')
         abas.add(frame_funcionarios, text='Funcionários')
         abas.add(frame_convenios, text='Convênios')
+        abas.add(frame_consulta, text='Consultas')
 
         botoes = [
             Button(frame_pacientes, text='Cadastrar Paciente', command=lambda: self.renderFormulario(models.Pessoa)),
@@ -65,6 +78,8 @@ class Interface:
             Button(frame_funcionarios, text='Lista de Funcionários', command=lambda: self.listar(models.Funcionario)),
             Button(frame_convenios, text='Cadastrar Convênio', command=lambda: self.renderFormulario(models.Convenio)),
             Button(frame_convenios, text='Lista de Convênios', command=lambda: self.listar(models.Convenio)),
+            Button(frame_consulta, text='Marcar Consulta', command=lambda: self.listar(models.Pessoa, marcar_consulta=True)),
+            Button(frame_consulta, text='Listar Consultas', command=lambda: self.listar(models.Consulta)),
         ]
 
         coluna = 0
@@ -100,7 +115,7 @@ class Interface:
         botao_voltar.pack()
 
         
-    def renderFormulario(self, classe, objeto=None, edit=False):
+    def renderFormulario(self, classe, objeto=None, edit=False, objetos_consulta=[]):
         '''Renderiza o formulário de uma classe (pessoa, funcionario, convenio)
         O formulário já vem preenchido se for para editar informações de uma pessoa existente
         '''
@@ -193,6 +208,20 @@ class Interface:
                 ]
                 id_objeto = objeto.id
                 id_endereco = objeto.endereco.id
+        elif classe is models.Consulta:
+            campos = [
+                {'nome': 'Descricão', 'obs': ''},
+                {'nome': 'Dia', 'obs': ''},
+                {'nome': 'Mês', 'obs': ''},
+                {'nome': 'Hora', 'obs': ''},
+            ]
+            if objeto != None:
+                dados = [
+                    objeto.descricao, objeto.dia, objeto.mes,
+                    objeto.hora
+                ]
+                objetos_consulta = [objeto.paciente, objeto.convenio, objeto.medico]
+                id_objeto = objeto.id
 
 
         self.resetarTela()
@@ -232,7 +261,7 @@ class Interface:
         
         botoes = [
             Button(self.frame_botoes, text='Voltar'),
-            Button(self.frame_botoes, text='Cadastrar', command= partial(self.alterarBancoDeDados,classe, edit, id_endereco, id_objeto))
+            Button(self.frame_botoes, text='Cadastrar', command= partial(self.alterarBancoDeDados,classe, edit, id_endereco, id_objeto, objetos_consulta))
         ]
 
         if edit:
@@ -240,6 +269,8 @@ class Interface:
                 classe = models.Funcionario
             elif isinstance(objeto, models.Pessoa):
                 classe = models.Pessoa
+            elif isinstance(objeto, models.Consulta):
+                classe = models.Consulta
             botoes[0]['command'] = lambda: self.listar(classe)
         else:
             botoes[0]['command'] = self.menuPrincipal
@@ -249,7 +280,7 @@ class Interface:
             botao.grid(row=0, column=posicao)
         
     
-    def alterarBancoDeDados(self, classe, edit=False, id_endereco=None, id_objeto=None):
+    def alterarBancoDeDados(self, classe, edit=False, id_endereco=None, id_objeto=None, dados_consulta=[]):
         '''
         Cadastra ou altera um objeto no banco de dados dependendo da variavel edit
         Este método cria um objeto da classe passada como parâmetro e utiliza um método de 
@@ -263,13 +294,14 @@ class Interface:
         '''
 
         #Todos os objetos tem um endereço
-        endereco = models.Endereco(
-            self.lista_inputs[self.RUA].get().strip(),
-            self.lista_inputs[self.CIDADE].get().strip(),
-            self.lista_inputs[self.ESTADO].get().strip(),
-            self.lista_inputs[self.NUMERO].get().strip(),
-            id_endereco
-        )
+        if not classe is models.Consulta:
+            endereco = models.Endereco(
+                self.lista_inputs[self.RUA].get().strip(),
+                self.lista_inputs[self.CIDADE].get().strip(),
+                self.lista_inputs[self.ESTADO].get().strip(),
+                self.lista_inputs[self.NUMERO].get().strip(),
+                id_endereco
+            )
         objeto = None
         metodo_validacao = None
         servico = None
@@ -357,11 +389,35 @@ class Interface:
                 servico = services.editarMedico
             else:
                 servico = services.cadastrarMedico
+        elif classe is models.Consulta:
+            objeto = models.Consulta(
+                dados_consulta[self.PACIENTE],
+                dados_consulta[self.CONVENIO],
+                dados_consulta[self.MEDICO],
+                self.lista_inputs[self.DESCRICAO].get().strip(),
+                self.lista_inputs[self.DIA].get().strip(),
+                self.lista_inputs[self.MES].get().strip(),
+                self.lista_inputs[self.HORA].get().strip(),
+                id=id_objeto,
+            )
+
+            if edit:
+                metodo_validacao = partial(Validacao.validarConsulta, edit=True)
+            else:
+                metodo_validacao = Validacao.validarConsulta
+            
+
+            if edit:
+                servico = services.editarConsulta
+            else:
+                servico = services.cadastrarConsulta
 
         try:
+
             metodo_validacao(objeto)
 
-            Validacao.validarEndereco(endereco)
+            if not classe is models.Consulta:
+                Validacao.validarEndereco(endereco)
 
             servico(objeto)
 
@@ -373,14 +429,25 @@ class Interface:
             self.frame_botoes.grid(row=len(self.lista_inputs)+1, column=0, columnspan=3)
             botao_voltar = Button(self.frame_botoes, text='Voltar', command=self.menuPrincipal)
             botao_voltar.grid(row=0, column=0)
-              
+            
         except Exception as e:
             self.label_erro['fg'] = 'red'
             self.label_erro['text'] = e
     
-    def listar(self, classe, adicionar_ao_convenio=False, convenio_para_adicionar=None):
+    def listar(self, classe, adicionar_ao_convenio=False, convenio_para_adicionar=None,
+        marcar_consulta=False, dados_consulta = []):
         self.resetarTela()
         '''Serve para pacientes, funcionarios, ou convenios'''
+        if marcar_consulta:
+            titulo = Label(self.main_container)
+            titulo.grid(row=0, column=0)
+            if classe is models.Pessoa:
+                titulo['text'] = 'Escolha o paciente'
+            elif classe is models.Convenio:
+                titulo['text'] = 'Escolha o convenio'
+            elif classe is models.Funcionario:
+                titulo['text'] = 'Escolha o Médico'
+            
        
         objetos = []
         notebook = ttk.Notebook(self.main_container)
@@ -391,7 +458,7 @@ class Interface:
             notebook.add(abas[0], text='Pacientes')   
         elif classe is models.Funcionario:
             objetos.extend(services.getFuncionarios())
-            if adicionar_ao_convenio:
+            if adicionar_ao_convenio or marcar_consulta:
                 #lista apenas os médicos
                 objetos = [objetos[-1]]
                 abas.append(Frame(notebook))
@@ -407,6 +474,10 @@ class Interface:
             objetos.append(services.getConvenios())
             abas.append(Frame(notebook))
             notebook.add(abas[0], text='Convênios')
+        elif classe is models.Consulta:
+            objetos.append(services.getConsultas())
+            abas.append(Frame(notebook))
+            notebook.add(abas[0], text='Consultas')
         
         #Frame do canvas
         for posicao_aba, aba in enumerate(abas):
@@ -429,7 +500,11 @@ class Interface:
 
             for posicao, objeto in enumerate(objetos[posicao_aba]):
                 frame_objeto = Frame(list_frame, height=self.TAMANHO_OBJETO_LISTA,)
-                nome = Label(frame_objeto, text=objeto.nome, width=self.LISTAR_LABEL_WIDTH)
+                nome = Label(frame_objeto, width=self.LISTAR_LABEL_WIDTH)
+                if classe is models.Consulta:
+                    nome['text'] = f'{objeto.paciente.nome} {objeto.dia}/{objeto.mes}; {objeto.hora}:00'
+                else:
+                    nome['text'] = objeto.nome
                 if adicionar_ao_convenio:
                     botao_adicionar = Button(frame_objeto, width=self.LISTAR_BUTTON_WIDTH)
                     botao_adicionar.grid(row=0, column=1)
@@ -443,14 +518,23 @@ class Interface:
                         botao_adicionar['text'] = 'Remover'
                         botao_adicionar['fg'] = 'red'
                         botao_adicionar['command'] = partial(self.removerMedicoFromConvenio, objeto, convenio_para_adicionar)
+                elif marcar_consulta:
+                    botao_selecionar = Button(frame_objeto, text='Selecionar', width=self.LISTAR_BUTTON_WIDTH)
+                    botao_selecionar.grid(row=0, column=1)
+                    if classe is models.Pessoa:
+                        botao_selecionar['command'] = lambda: self.listar(models.Convenio, marcar_consulta=True, dados_consulta=dados_consulta + [objeto])
+                    elif classe is models.Convenio:
+                        botao_selecionar['command'] = lambda: self.listar(models.Funcionario, marcar_consulta=True, dados_consulta=dados_consulta + [objeto])
+                    elif classe is models.Funcionario:
+                        botao_selecionar['command'] = lambda: self.renderFormulario(models.Consulta, objetos_consulta=dados_consulta + [objeto])
                 else:
                     botao_editar = Button(frame_objeto, text='Editar', width=self.LISTAR_BUTTON_WIDTH, command=partial(self.renderFormulario, type(objeto), objeto, True))
                     botao_excluir = Button(frame_objeto, text='Excluir', command=partial(self.confirmarExclusao, objeto), width=self.LISTAR_BUTTON_WIDTH)
                     botao_editar.grid(row=0, column=1)
                     botao_excluir.grid(row=0, column=3)
-                if classe is models.Convenio:
-                    botao_add_medico = Button(frame_objeto, text='Add. Médico', width=self.LISTAR_BUTTON_WIDTH, command=partial(self.listar, models.Funcionario, True, objeto))
-                    botao_add_medico.grid(row=0, column=2)
+                    if classe is models.Convenio:
+                        botao_add_medico = Button(frame_objeto, text='Add. Médico', width=self.LISTAR_BUTTON_WIDTH, command=partial(self.listar, models.Funcionario, True, objeto))
+                        botao_add_medico.grid(row=0, column=2)
                 
                 nome.grid(row=0, column=0)
                 frame_objeto.grid(column=0, row=posicao, pady=self.PADY)
@@ -459,13 +543,13 @@ class Interface:
             canvas.create_window(0,0, anchor='nw', window=list_frame)
         
         #botão para voltar
-        notebook.grid(row=0, column=0)
+        notebook.grid(row=1, column=0)
         botao_voltar = Button(self.main_container, text='Voltar')
         if adicionar_ao_convenio:
             botao_voltar['command'] = lambda: self.listar(models.Convenio)
         else:
             botao_voltar['command'] = self.menuPrincipal
-        botao_voltar.grid(row=1, column=0)
+        botao_voltar.grid(row=2, column=0)
               
     def confirmarExclusao(self, objeto):
         self.resetarTela()
@@ -475,9 +559,15 @@ class Interface:
             classe = models.Pessoa
         elif isinstance(objeto, models.Convenio):
             classe = models.Convenio
+        elif isinstance(objeto, models.Consulta):
+            classe = models.Consulta
         
         self.frame_botoes = Frame(self.main_container)
-        msg = Label(self.main_container, text=f'Tem certeza que deseja excluir {objeto.nome}')
+        msg = Label(self.main_container)
+        if classe is models.Consulta:
+            msg['text'] = f'Tem certeza que deseja apagar {objeto.descricao}'
+        else:
+            msg['text'] = f'Tem certeza que deseja excluir {objeto.nome}'
         botao_sim = Button(self.frame_botoes, text='Sim', command=lambda: self.excluir(objeto, classe))
         botao_nao = Button(self.frame_botoes, text='Não', command=lambda: self.listar(classe))
 
@@ -487,7 +577,10 @@ class Interface:
         botao_nao.grid(row=0, column=1, padx=self.PADX)
     
     def excluir(self, objeto, classe):
-        services.excluir(objeto)
+        if classe is models.Consulta:
+            services.removerConsulta(objeto)
+        else:
+            services.excluir(objeto)
 
         self.resetarTela()
 
